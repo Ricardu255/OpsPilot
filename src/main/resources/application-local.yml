@@ -1,0 +1,8 @@
+milvus:
+  enabled: true
+
+prometheus:
+  mock-enabled: false
+
+cls:
+  mock-enabled: false

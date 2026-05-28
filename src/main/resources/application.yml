@@ -1,0 +1,96 @@
+server:
+  port: 9900
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+file:
+  upload:
+    path: ./uploads
+    allowed-extensions: txt,md
+
+milvus:
+  enabled: ${MILVUS_ENABLED:true}
+  host: localhost
+  port: 19530
+  username: ""
+  password: ""
+  database: default
+  timeout: 10000
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:h2:file:./data/superbiz-trace;MODE=MySQL}
+    username: ${SPRING_DATASOURCE_USERNAME:sa}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+    driver-class-name: ${SPRING_DATASOURCE_DRIVER_CLASS_NAME:org.h2.Driver}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: '0'
+  ai:
+    dashscope:
+      api-key: ${DASHSCOPE_API_KEY:}
+      chat:
+        options:
+          timeout: 180000
+      retry:
+        max-attempts: 3
+        backoff:
+          initial-interval: 2000
+          multiplier: 2
+          max-interval: 10000
+    mcp:
+      client:
+        enabled: true
+        name: tencent-mcp-server
+        version: 1.0.0
+        request-timeout: 60s
+        type: ASYNC
+        sse:
+          connections:
+            tencent-cls:
+              url: http://localhost:3000
+              sse-endpoint: /sse
+
+dashscope:
+  api:
+    key: ${DASHSCOPE_API_KEY:}
+  embedding:
+    model: text-embedding-v4
+
+document:
+  chunk:
+    max-size: 800
+    overlap: 100
+
+rag:
+  top-k: 3
+  model: qwen3-max
+
+prometheus:
+  base-url: http://localhost:9090
+  timeout: 10
+  mock-enabled: false
+
+cls:
+  mock-enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    prometheus:
+      enabled: true

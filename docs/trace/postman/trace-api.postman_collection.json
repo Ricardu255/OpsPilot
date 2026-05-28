@@ -1,0 +1,127 @@
+{
+  "info": {
+    "name": "SuperBizAgent Trace API",
+    "_postman_id": "6f6f7a30-e78d-4bc5-8ba0-0a36ce0b1ef1",
+    "description": "Trace query endpoints for SuperBizAgent",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:9900"
+    },
+    {
+      "key": "traceId",
+      "value": "trace-1"
+    },
+    {
+      "key": "sessionId",
+      "value": "session-1"
+    }
+  ],
+  "item": [
+    {
+      "name": "Get Trace Detail By TraceId",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/trace/{{traceId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "trace",
+            "{{traceId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Trace Detail By SessionId",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/trace/session/{{sessionId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "trace",
+            "session",
+            "{{sessionId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "List Traces",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/trace?status=FAILED&page=0&size=20",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "trace"
+          ],
+          "query": [
+            {
+              "key": "status",
+              "value": "FAILED"
+            },
+            {
+              "key": "page",
+              "value": "0"
+            },
+            {
+              "key": "size",
+              "value": "20"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Trace Stats",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/trace/stats",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "trace",
+            "stats"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Prometheus Metrics",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/actuator/prometheus",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "actuator",
+            "prometheus"
+          ]
+        }
+      }
+    }
+  ]
+}

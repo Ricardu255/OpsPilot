@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trace 控制台</title>
+    <link rel="stylesheet" href="trace.css">
+</head>
+<body>
+<div class="trace-app">
+    <header class="topbar">
+        <div class="topbar-copy">
+            <p class="eyebrow">链路追踪 · OpsPilot</p>
+            <h1>Trace 控制台</h1>
+            <p class="subtitle">先看最近会话，再按需展开证据。保留排查重点，不让参数把页面压满。</p>
+        </div>
+        <div class="topbar-actions">
+            <div class="mini-metrics">
+                <div class="mini-metric">
+                    <span>成功率</span>
+                    <strong id="metricSuccessCount">--</strong>
+                </div>
+            </div>
+            <span id="demoBadge" class="demo-badge" hidden>演示数据</span>
+            <a class="text-link" href="index.html">返回对话</a>
+            <button id="refreshBtn" class="secondary-btn" type="button">刷新</button>
+        </div>
+    </header>
+
+    <section class="metrics-strip" id="metricsStrip">
+        <article class="metric-tile">
+            <span class="metric-label">会话总数</span>
+            <strong class="metric-value" id="metricTotalSessions">--</strong>
+        </article>
+        <article class="metric-tile">
+            <span class="metric-label">失败会话</span>
+            <strong class="metric-value failed" id="metricFailedCount">--</strong>
+        </article>
+        <article class="metric-tile">
+            <span class="metric-label">平均耗时</span>
+            <strong class="metric-value" id="metricAverageCost">--</strong>
+        </article>
+    </section>
+
+    <section class="toolbar">
+        <div class="lookup-bar">
+            <label class="field field-wide">
+                <span>链路 ID</span>
+                <input id="traceIdInput" type="text" placeholder="trace-...">
+            </label>
+            <button id="findTraceBtn" class="secondary-btn" type="button">打开链路</button>
+            <label class="field field-wide">
+                <span>会话 ID</span>
+                <input id="sessionIdInput" type="text" placeholder="session-...">
+            </label>
+            <button id="findSessionBtn" class="secondary-btn" type="button">打开会话</button>
+            <label class="field">
+                <span>状态</span>
+                <select id="statusFilter">
+                    <option value="">全部</option>
+                    <option value="RUNNING">运行中</option>
+                    <option value="SUCCESS">成功</option>
+                    <option value="FAILED">失败</option>
+                </select>
+            </label>
+            <button id="applyFiltersBtn" class="secondary-btn" type="button">筛选</button>
+        </div>
+
+        <details class="advanced-filters">
+            <summary>更多筛选</summary>
+            <div class="filter-grid">
+                <label class="field">
+                    <span>Agent 类型</span>
+                    <select id="agentTypeFilter">
+                        <option value="">全部</option>
+                        <option value="AIOPS_AGENT">AI Ops</option>
+                    </select>
+                </label>
+                <label class="field">
+                    <span>开始时间从</span>
+                    <input id="startFromFilter" type="datetime-local">
+                </label>
+                <label class="field">
+                    <span>开始时间至</span>
+                    <input id="startToFilter" type="datetime-local">
+                </label>
+                <label class="field">
+                    <span>每页数量</span>
+                    <select id="pageSizeFilter">
+                        <option value="10">10</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                    </select>
+                </label>
+                <div class="toolbar-actions">
+                    <button id="resetFiltersBtn" class="ghost-btn" type="button">重置</button>
+                </div>
+            </div>
+        </details>
+    </section>
+
+    <main class="workspace">
+        <section class="sessions-panel">
+            <div class="section-header">
+                <div>
+                    <p class="section-eyebrow">会话列表</p>
+                    <h2>最近链路</h2>
+                </div>
+                <span class="panel-meta" id="resultMeta">加载中...</span>
+            </div>
+            <div class="session-list" id="sessionList"></div>
+            <div class="pagination-bar">
+                <button id="prevPageBtn" class="ghost-btn" type="button">上一页</button>
+                <span id="pageLabel">第 1 页</span>
+                <button id="nextPageBtn" class="ghost-btn" type="button">下一页</button>
+            </div>
+        </section>
+
+        <section class="detail-panel">
+            <div class="section-header detail-header">
+                <div>
+                    <p class="section-eyebrow">链路详情</p>
+                    <h2 id="detailTitle">选择一条链路</h2>
+                </div>
+                <span class="panel-meta" id="detailMeta">尚未加载</span>
+            </div>
+
+            <div class="detail-overview" id="detailOverview">
+                <div class="empty-state">
+                    <h3>还没有选中链路</h3>
+                    <p>从左侧会话列表选择，或者直接输入链路 ID / 会话 ID 打开。</p>
+                </div>
+            </div>
+
+            <div class="detail-scroll">
+                <section class="detail-section detail-section-steps">
+                    <div class="detail-section-head">
+                        <h3>执行步骤</h3>
+                        <span id="stepsCount">0 项</span>
+                    </div>
+                    <div class="timeline" id="stepsTimeline"></div>
+                </section>
+
+                <section class="detail-section detail-section-tools">
+                    <div class="detail-section-head">
+                        <h3>工具证据</h3>
+                        <span id="toolCallsCount">0 项</span>
+                    </div>
+                    <div class="table-shell">
+                        <table class="detail-table">
+                            <thead>
+                            <tr>
+                                <th>工具</th>
+                                <th>状态</th>
+                                <th>耗时</th>
+                                <th>摘要</th>
+                            </tr>
+                            </thead>
+                            <tbody id="toolCallsTableBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="detail-section detail-section-replans">
+                    <div class="detail-section-head">
+                        <h3>重规划记录</h3>
+                        <span id="replansCount">0 项</span>
+                    </div>
+                    <div class="replan-list" id="replanList"></div>
+                </section>
+            </div>
+        </section>
+    </main>
+    <div class="toast" id="toast" aria-live="polite"></div>
+</div>
+<script src="trace.js"></script>
+</body>
+</html>
