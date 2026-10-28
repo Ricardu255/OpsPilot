@@ -1,6 +1,7 @@
 package org.example.trace;
 
 import org.example.aiops.ReplanDecisionEvaluator;
+import org.example.reliability.error.RetryExecutor;
 import org.example.trace.service.AgentTraceService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -19,6 +20,22 @@ import static org.mockito.Mockito.verify;
 
 class ToolTraceHelperTest {
 
+    private ToolTraceHelper createHelper() {
+        ToolTraceHelper helper = new ToolTraceHelper();
+        RetryExecutor retryExecutor = new RetryExecutor();
+        ReflectionTestUtils.setField(retryExecutor, "maxRetries", 1);
+        ReflectionTestUtils.setField(helper, "retryExecutor", retryExecutor);
+        ReflectionTestUtils.setField(helper, "maxResultLength", 2000);
+        ReflectionTestUtils.setField(helper, "maxErrorLength", 500);
+        return helper;
+    }
+
+    private ReplanDecisionEvaluator createEvaluator() {
+        ReplanDecisionEvaluator evaluator = new ReplanDecisionEvaluator();
+        ReflectionTestUtils.setField(evaluator, "failureThreshold", 2);
+        return evaluator;
+    }
+
     @AfterEach
     void tearDown() {
         TraceContextHolder.clear();
@@ -26,10 +43,10 @@ class ToolTraceHelperTest {
 
     @Test
     void secondConsecutiveFailureRecordsReplan() {
-        ToolTraceHelper helper = new ToolTraceHelper();
+        ToolTraceHelper helper = createHelper();
         AgentTraceService traceService = mock(AgentTraceService.class);
         ReflectionTestUtils.setField(helper, "agentTraceService", traceService);
-        ReflectionTestUtils.setField(helper, "replanDecisionEvaluator", new ReplanDecisionEvaluator());
+        ReflectionTestUtils.setField(helper, "replanDecisionEvaluator", createEvaluator());
         TraceContextHolder.set(new TraceContext("trace-1", "session-1", "request-1", "user-1"));
 
         helper.executeAndTrace("queryLogs", "{}", () -> {
@@ -50,10 +67,10 @@ class ToolTraceHelperTest {
 
     @Test
     void successResetsFailureCounterForTool() {
-        ToolTraceHelper helper = new ToolTraceHelper();
+        ToolTraceHelper helper = createHelper();
         AgentTraceService traceService = mock(AgentTraceService.class);
         ReflectionTestUtils.setField(helper, "agentTraceService", traceService);
-        ReflectionTestUtils.setField(helper, "replanDecisionEvaluator", new ReplanDecisionEvaluator());
+        ReflectionTestUtils.setField(helper, "replanDecisionEvaluator", createEvaluator());
         TraceContextHolder.set(new TraceContext("trace-2", "session-2", "request-2", "user-2"));
 
         helper.executeAndTrace("queryLogs", "{}", () -> {
@@ -75,10 +92,10 @@ class ToolTraceHelperTest {
 
     @Test
     void retryableFailureRetriesOnceBeforeSuccess() {
-        ToolTraceHelper helper = new ToolTraceHelper();
+        ToolTraceHelper helper = createHelper();
         AgentTraceService traceService = mock(AgentTraceService.class);
         ReflectionTestUtils.setField(helper, "agentTraceService", traceService);
-        ReflectionTestUtils.setField(helper, "replanDecisionEvaluator", new ReplanDecisionEvaluator());
+        ReflectionTestUtils.setField(helper, "replanDecisionEvaluator", createEvaluator());
         TraceContextHolder.set(new TraceContext("trace-3", "session-3", "request-3", "user-3"));
 
         AtomicInteger attempts = new AtomicInteger();
@@ -108,10 +125,10 @@ class ToolTraceHelperTest {
 
     @Test
     void nonRetryableFailureDoesNotRetry() {
-        ToolTraceHelper helper = new ToolTraceHelper();
+        ToolTraceHelper helper = createHelper();
         AgentTraceService traceService = mock(AgentTraceService.class);
         ReflectionTestUtils.setField(helper, "agentTraceService", traceService);
-        ReflectionTestUtils.setField(helper, "replanDecisionEvaluator", new ReplanDecisionEvaluator());
+        ReflectionTestUtils.setField(helper, "replanDecisionEvaluator", createEvaluator());
         TraceContextHolder.set(new TraceContext("trace-4", "session-4", "request-4", "user-4"));
 
         AtomicInteger attempts = new AtomicInteger();
@@ -147,7 +164,7 @@ class ToolTraceHelperTest {
 
     @Test
     void missingSessionIdSkipsToolTracePersistence() {
-        ToolTraceHelper helper = new ToolTraceHelper();
+        ToolTraceHelper helper = createHelper();
         AgentTraceService traceService = mock(AgentTraceService.class);
         ReflectionTestUtils.setField(helper, "agentTraceService", traceService);
         TraceContextHolder.set(new TraceContext("trace-5", null, "request-5", "user-5"));

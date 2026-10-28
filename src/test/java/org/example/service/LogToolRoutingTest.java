@@ -54,13 +54,15 @@ class LogToolRoutingTest {
     }
 
     @Test
-    void aiOpsServiceOmitsLocalQueryLogsToolWhenMockModeIsDisabled() {
-        AiOpsService service = new AiOpsService();
+    void aiOpsServiceDelegatesBuildMethodToolsArrayToChatService() {
+        AiOpsService aiOpsService = new AiOpsService();
+        ChatService chatService = new ChatService();
         QueryLogsTools logsTools = new QueryLogsTools();
         ReflectionTestUtils.setField(logsTools, "mockEnabled", false);
-        ReflectionTestUtils.setField(service, "queryLogsTools", logsTools);
+        ReflectionTestUtils.setField(chatService, "queryLogsTools", logsTools);
+        ReflectionTestUtils.setField(aiOpsService, "chatService", chatService);
 
-        Object[] tools = (Object[]) ReflectionTestUtils.invokeMethod(service, "buildMethodToolsArray");
+        Object[] tools = chatService.buildMethodToolsArray();
 
         assertThat(Arrays.stream(tools).filter(Objects::nonNull))
                 .noneMatch(QueryLogsTools.class::isInstance);

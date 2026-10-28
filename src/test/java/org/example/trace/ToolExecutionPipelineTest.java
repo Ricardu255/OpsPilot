@@ -5,7 +5,9 @@ import org.example.reliability.error.RetryExecutor;
 import org.example.tool.pipeline.ToolExecutionPipeline;
 import org.example.tool.pipeline.ToolExecutionRequest;
 import org.example.tool.pipeline.ToolExecutionResult;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -13,9 +15,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ToolExecutionPipelineTest {
 
+    private ToolExecutionPipeline createPipeline() {
+        RetryExecutor retryExecutor = new RetryExecutor();
+        ReflectionTestUtils.setField(retryExecutor, "maxRetries", 1);
+        return new ToolExecutionPipeline(new AiErrorClassifier(), retryExecutor);
+    }
+
     @Test
     void prepareRejectsBlankToolName() {
-        ToolExecutionPipeline pipeline = new ToolExecutionPipeline(new AiErrorClassifier(), new RetryExecutor());
+        ToolExecutionPipeline pipeline = createPipeline();
         AtomicInteger attempts = new AtomicInteger();
 
         ToolExecutionResult result = pipeline.execute(new ToolExecutionRequest(
@@ -35,7 +43,7 @@ class ToolExecutionPipelineTest {
 
     @Test
     void executeRetriesRetryableFailureOnce() {
-        ToolExecutionPipeline pipeline = new ToolExecutionPipeline(new AiErrorClassifier(), new RetryExecutor());
+        ToolExecutionPipeline pipeline = createPipeline();
         AtomicInteger attempts = new AtomicInteger();
 
         ToolExecutionResult result = pipeline.execute(new ToolExecutionRequest(
@@ -56,7 +64,7 @@ class ToolExecutionPipelineTest {
 
     @Test
     void finalizeBuildsFailureResponseWhenExecutionThrows() {
-        ToolExecutionPipeline pipeline = new ToolExecutionPipeline(new AiErrorClassifier(), new RetryExecutor());
+        ToolExecutionPipeline pipeline = createPipeline();
 
         ToolExecutionResult result = pipeline.execute(new ToolExecutionRequest(
                 "queryLogs",

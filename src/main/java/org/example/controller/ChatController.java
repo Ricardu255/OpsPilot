@@ -11,6 +11,7 @@ import com.alibaba.cloud.ai.graph.streaming.StreamingOutput;
 import lombok.Getter;
 import lombok.Setter;
 import org.example.aiops.ReplanReason;
+import org.example.dto.ApiResponse;
 import org.example.service.AiOpsService;
 import org.example.service.ChatService;
 import org.example.trace.TraceContext;
@@ -20,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -56,9 +58,18 @@ public class ChatController {
 
     // 存储会话信息
     private final Map<String, SessionInfo> sessions = new ConcurrentHashMap<>();
-    
-    // 最大历史消息窗口大小（成对计算：用户消息+AI回复=1对）
-    private static final int MAX_WINDOW_SIZE = 6;
+
+    @Value("${agent.chat.max-window-size:6}")
+    private int maxWindowSize;
+
+    @Value("${agent.chat.sse.timeout:300000}")
+    private long chatSseTimeout;
+
+    @Value("${agent.aiops.sse.timeout:600000}")
+    private long aiopsSseTimeout;
+
+    @Value("${agent.chat.report-chunk-size:500}")
+    private int reportChunkSize;
 
     /**
      * 普通对话接口（支持工具调用）
@@ -157,7 +168,7 @@ public class ChatController {
      */
     @PostMapping(value = "/chat_stream", produces = "text/event-stream;charset=UTF-8")
     public SseEmitter chatStream(@RequestBody ChatRequest request) {
-        SseEmitter emitter = new SseEmitter(300000L); // 5分钟超时
+        SseEmitter emitter = new SseEmitter(chatSseTimeout);
 
         // 参数校验
         if (request.getQuestion() == null || request.getQuestion().trim().isEmpty()) {
@@ -340,7 +351,7 @@ public class ChatController {
         TraceContext asyncTraceContext = getOrCreateTraceContext("aiops-" + UUID.randomUUID());
         String traceId = asyncTraceContext.traceId();
         String traceSessionId = asyncTraceContext.sessionId();
-        SseEmitter emitter = new SseEmitter(600000L); // 10分钟超时（告警分析可能较慢）
+        SseEmitter emitter = new SseEmitter(aiopsSseTimeout);
 
         executor.execute(() -> {
             try {
@@ -406,7 +417,7 @@ public class ChatController {
                         emitter.send(SseEmitter.event().name("message")
                                 .data(SseMessage.content("## 告警分析报告\n\n"), MediaType.APPLICATION_JSON));
 
-                        int chunkSize = 500;
+                        int chunkSize = reportChunkSize;
                         for (int i = 0; i < finalReportText.length(); i += chunkSize) {
                             int end = Math.min(i + chunkSize, finalReportText.length());
                             String chunk = finalReportText.substring(i, end);
@@ -588,7 +599,7 @@ public class ChatController {
         if (sessionId == null || sessionId.isEmpty()) {
             sessionId = UUID.randomUUID().toString();
         }
-        return sessions.computeIfAbsent(sessionId, SessionInfo::new);
+        return sessions.computeIfAbsent(sessionId, id -> new SessionInfo(id, maxWindowSize));
     }
 
     private ToolCallback[] getToolCallbacks() {
@@ -655,13 +666,14 @@ public class ChatController {
      */
     private static class SessionInfo {
         private final String sessionId;
-        // 存储历史消息对：[{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]
+        private final int maxWindowSize;
         private final List<Map<String, String>> messageHistory;
         private final long createTime;
         private final ReentrantLock lock;
 
-        public SessionInfo(String sessionId) {
+        public SessionInfo(String sessionId, int maxWindowSize) {
             this.sessionId = sessionId;
+            this.maxWindowSize = maxWindowSize;
             this.messageHistory = new ArrayList<>();
             this.createTime = System.currentTimeMillis();
             this.lock = new ReentrantLock();
@@ -686,9 +698,9 @@ public class ChatController {
                 assistantMsg.put("content", aiAnswer);
                 messageHistory.add(assistantMsg);
 
-                // 自动清理：保持最多 MAX_WINDOW_SIZE 对消息
+                // 自动清理：保持最多 maxWindowSize 对消息
                 // 每对消息包含2条记录（user + assistant）
-                int maxMessages = MAX_WINDOW_SIZE * 2;
+                int maxMessages = maxWindowSize * 2;
                 while (messageHistory.size() > maxMessages) {
                     // 成对删除最旧的消息（删除前2条）
                     messageHistory.remove(0); // 删除最旧的用户消息
@@ -864,30 +876,5 @@ public class ChatController {
                     .replace("\\", "\\\\")
                     .replace("\"", "\\\"");
         }
-    }
-
-
-    @Getter
-    @Setter
-    public static class ApiResponse<T> {
-        private int code;
-        private String message;
-        private T data;
-
-        public static <T> ApiResponse<T> success(T data) {
-            ApiResponse<T> response = new ApiResponse<>();
-            response.setCode(200);
-            response.setMessage("success");
-            response.setData(data);
-            return response;
-        }
-
-        public static <T> ApiResponse<T> error(String message) {
-            ApiResponse<T> response = new ApiResponse<>();
-            response.setCode(500);
-            response.setMessage(message);
-            return response;
-        }
-
     }
 }

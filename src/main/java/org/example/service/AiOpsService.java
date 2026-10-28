@@ -10,10 +10,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.aiops.ReplanDecision;
 import org.example.aiops.ReplanDecisionEvaluator;
 import org.example.aiops.ReplanReason;
-import org.example.agent.tool.DateTimeTools;
-import org.example.agent.tool.InternalDocsTools;
-import org.example.agent.tool.QueryLogsTools;
-import org.example.agent.tool.QueryMetricsTools;
 import org.example.trace.TraceContext;
 import org.example.trace.TraceContextHolder;
 import org.example.trace.ToolTraceHelper;
@@ -40,16 +36,7 @@ public class AiOpsService {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Autowired
-    private DateTimeTools dateTimeTools;
-
-    @Autowired
-    private InternalDocsTools internalDocsTools;
-
-    @Autowired
-    private QueryMetricsTools queryMetricsTools;
-
-    @Autowired(required = false)
-    private QueryLogsTools queryLogsTools;
+    private ChatService chatService;
 
     @Autowired(required = false)
     private AgentTraceService agentTraceService;
@@ -438,7 +425,7 @@ public class AiOpsService {
                 .description("负责拆解告警、规划步骤并在必要时重新规划")
                 .model(chatModel)
                 .systemPrompt(buildPlannerPrompt())
-                .methodTools(buildMethodToolsArray())
+                .methodTools(chatService.buildMethodToolsArray())
                 .tools(toolCallbacks)
                 .outputKey("planner_plan")
                 .build();
@@ -450,19 +437,10 @@ public class AiOpsService {
                 .description("负责执行 Planner 当前安排的首个步骤，并反馈证据")
                 .model(chatModel)
                 .systemPrompt(buildExecutorPrompt())
-                .methodTools(buildMethodToolsArray())
+                .methodTools(chatService.buildMethodToolsArray())
                 .tools(toolCallbacks)
                 .outputKey("executor_feedback")
                 .build();
-    }
-
-    private Object[] buildMethodToolsArray() {
-        if (queryLogsTools != null) {
-            return queryLogsTools.shouldRegisterAsLocalTool()
-                    ? new Object[]{dateTimeTools, internalDocsTools, queryMetricsTools, queryLogsTools}
-                    : new Object[]{dateTimeTools, internalDocsTools, queryMetricsTools};
-        }
-        return new Object[]{dateTimeTools, internalDocsTools, queryMetricsTools};
     }
 
     private String buildPlannerPrompt() {

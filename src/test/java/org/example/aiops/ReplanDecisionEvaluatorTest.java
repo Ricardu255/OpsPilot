@@ -1,14 +1,21 @@
 package org.example.aiops;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ReplanDecisionEvaluatorTest {
 
+    private ReplanDecisionEvaluator createEvaluator() {
+        ReplanDecisionEvaluator evaluator = new ReplanDecisionEvaluator();
+        ReflectionTestUtils.setField(evaluator, "failureThreshold", 2);
+        return evaluator;
+    }
+
     @Test
     void returnsRetryWhenToolFailsWithinRetryBudget() {
-        ReplanDecisionEvaluator evaluator = new ReplanDecisionEvaluator();
+        ReplanDecisionEvaluator evaluator = createEvaluator();
 
         ReplanDecision decision = evaluator.evaluateToolResult(
                 "queryPrometheusAlerts",
@@ -23,7 +30,7 @@ class ReplanDecisionEvaluatorTest {
 
     @Test
     void returnsReplanWhenToolFailsRepeatedly() {
-        ReplanDecisionEvaluator evaluator = new ReplanDecisionEvaluator();
+        ReplanDecisionEvaluator evaluator = createEvaluator();
 
         ReplanDecision decision = evaluator.evaluateToolResult(
                 "queryLogs",
@@ -38,7 +45,7 @@ class ReplanDecisionEvaluatorTest {
 
     @Test
     void returnsReplanWhenToolReturnsEmptyPayload() {
-        ReplanDecisionEvaluator evaluator = new ReplanDecisionEvaluator();
+        ReplanDecisionEvaluator evaluator = createEvaluator();
 
         ReplanDecision decision = evaluator.evaluateToolResult(
                 "queryInternalDocs",

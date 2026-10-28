@@ -11,6 +11,7 @@ import org.example.trace.repository.AgentToolCallTraceRepository;
 import org.example.trace.repository.AgentTraceStepRepository;
 import org.example.trace.service.TraceQueryService;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -34,6 +35,8 @@ class TraceQueryServiceTest {
                 toolCallRepository,
                 replanRepository
         );
+        ReflectionTestUtils.setField(service, "promptMaxLength", 500);
+        ReflectionTestUtils.setField(service, "resultMaxLength", 1000);
 
         AgentSessionTrace session = new AgentSessionTrace();
         session.setTraceId("trace-1");
@@ -115,6 +118,8 @@ class TraceQueryServiceTest {
                 toolCallRepository,
                 replanRepository
         );
+        ReflectionTestUtils.setField(service, "promptMaxLength", 500);
+        ReflectionTestUtils.setField(service, "resultMaxLength", 1000);
 
         AgentSessionTrace session = new AgentSessionTrace();
         session.setTraceId("trace-2");

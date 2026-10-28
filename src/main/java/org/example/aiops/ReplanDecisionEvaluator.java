@@ -1,9 +1,13 @@
 package org.example.aiops;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
 public class ReplanDecisionEvaluator {
+
+    @Value("${agent.replan.failure-threshold:2}")
+    private int failureThreshold;
 
     public ReplanDecision evaluateToolResult(
             String toolName,
@@ -12,7 +16,7 @@ public class ReplanDecisionEvaluator {
             int failureCount
     ) {
         if (errorMessage != null && !errorMessage.isBlank()) {
-            if (failureCount >= 2) {
+            if (failureCount >= failureThreshold) {
                 return ReplanDecision.replan(
                         ReplanReason.TOOL_FAILED,
                         toolName + " failed repeatedly, switch strategy"

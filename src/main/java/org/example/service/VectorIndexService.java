@@ -9,6 +9,7 @@ import io.milvus.param.dml.DeleteParam;
 import io.milvus.param.dml.InsertParam;
 import lombok.Getter;
 import lombok.Setter;
+import org.example.client.MilvusCollectionManager;
 import org.example.constant.MilvusConstants;
 import org.example.dto.DocumentChunk;
 import org.slf4j.Logger;
@@ -41,6 +42,9 @@ public class VectorIndexService {
 
     @Autowired
     private DocumentChunkService chunkService;
+
+    @Autowired(required = false)
+    private MilvusCollectionManager collectionManager;
 
     @Value("${file.upload.path}")
     private String uploadPath;
@@ -198,17 +202,7 @@ public class VectorIndexService {
             logger.info("准备删除旧数据，路径: {}, 表达式: {}", normalizedPath, expr);
 
             // 确保 collection 已加载（删除操作需要集合已加载）
-            R<RpcStatus> loadResponse = milvusClient.loadCollection(
-                LoadCollectionParam.newBuilder()
-                    .withCollectionName(MilvusConstants.MILVUS_COLLECTION_NAME)
-                    .build()
-            );
-
-            // 状态码 65535 表示集合已经加载，这不是错误
-            if (loadResponse.getStatus() != 0 && loadResponse.getStatus() != 65535) {
-                logger.warn("加载 collection 失败: {}", loadResponse.getMessage());
-                return;
-            }
+            ensureCollectionLoaded();
 
             DeleteParam deleteParam = DeleteParam.newBuilder()
                     .withCollectionName(MilvusConstants.MILVUS_COLLECTION_NAME)
@@ -265,21 +259,30 @@ public class VectorIndexService {
     }
 
     /**
+     * 确保 Milvus collection 已加载到内存（幂等操作）
+     */
+    private void ensureCollectionLoaded() {
+        if (collectionManager != null) {
+            collectionManager.ensureCollectionLoaded(milvusClient);
+            return;
+        }
+        R<RpcStatus> loadResponse = milvusClient.loadCollection(
+                LoadCollectionParam.newBuilder()
+                        .withCollectionName(MilvusConstants.MILVUS_COLLECTION_NAME)
+                        .build()
+        );
+        if (loadResponse.getStatus() != 0 && loadResponse.getStatus() != 65535) {
+            throw new RuntimeException("加载 collection 失败: " + loadResponse.getMessage());
+        }
+    }
+
+    /**
      * 插入向量到 Milvus
      */
     private void insertToMilvus(String content, List<Float> vector, 
                                 Map<String, Object> metadata, int chunkIndex) throws Exception {
         try {
-            // 确保 collection 已加载
-            R<RpcStatus> loadResponse = milvusClient.loadCollection(
-                LoadCollectionParam.newBuilder()
-                    .withCollectionName(MilvusConstants.MILVUS_COLLECTION_NAME)
-                    .build()
-            );
-
-            if (loadResponse.getStatus() != 0 && loadResponse.getStatus() != 65535) {
-                throw new RuntimeException("加载 collection 失败: " + loadResponse.getMessage());
-            }
+            ensureCollectionLoaded();
 
             // 生成唯一 ID（使用 _source + 分片索引）
             String source = (String) metadata.get("_source");

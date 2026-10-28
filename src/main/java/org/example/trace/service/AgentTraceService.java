@@ -209,7 +209,7 @@ public class AgentTraceService {
     }
 
     /**
-     * 璁板綍宸ュ叿璋冪敤锛堝畬鏁寸増锛屽惈鍙潬鎬у厓鏁版嵁锛?
+     * 记录工具调用（完整版，含可靠性元数据）
      */
     @Transactional
     public AgentToolCallTrace recordToolCall(

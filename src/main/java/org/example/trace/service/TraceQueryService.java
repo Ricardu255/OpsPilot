@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import org.example.common.StringUtils;
 import org.example.trace.dto.TraceDetailResponse;
 import org.example.trace.dto.TraceReplanResponse;
 import org.example.trace.dto.TraceSessionSummaryResponse;
@@ -19,6 +20,7 @@ import org.example.trace.repository.AgentReplanRecordRepository;
 import org.example.trace.repository.AgentSessionTraceRepository;
 import org.example.trace.repository.AgentToolCallTraceRepository;
 import org.example.trace.repository.AgentTraceStepRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -36,8 +38,11 @@ import java.util.Set;
 @Transactional(readOnly = true)
 public class TraceQueryService {
 
-    private static final int PROMPT_MAX_LENGTH = 500;
-    private static final int RESULT_MAX_LENGTH = 1000;
+    @Value("${agent.trace.max-prompt-length:500}")
+    private int promptMaxLength;
+
+    @Value("${agent.trace.max-result-display-length:1000}")
+    private int resultMaxLength;
     private static final String TRUNCATED_SUFFIX = "...[truncated]";
     private static final String MASKED_VALUE = "***";
     private static final Set<String> SENSITIVE_FIELDS = Set.of(
@@ -151,14 +156,14 @@ public class TraceQueryService {
         dto.setTraceId(entity.getTraceId());
         dto.setSessionId(entity.getSessionId());
         dto.setAgentType(entity.getAgentType());
-        dto.setUserInput(truncate(entity.getUserInput(), PROMPT_MAX_LENGTH));
-        dto.setFinalAnswer(truncate(entity.getFinalAnswer(), RESULT_MAX_LENGTH));
+        dto.setUserInput(truncate(entity.getUserInput(), promptMaxLength));
+        dto.setFinalAnswer(truncate(entity.getFinalAnswer(), resultMaxLength));
         dto.setStatus(entity.getStatus());
         dto.setRootTraceId(entity.getRootTraceId());
         dto.setParentTraceId(entity.getParentTraceId());
         dto.setBranchType(entity.getBranchType());
         dto.setBranchLabel(entity.getBranchLabel());
-        dto.setErrorMessage(truncate(entity.getErrorMessage(), PROMPT_MAX_LENGTH));
+        dto.setErrorMessage(truncate(entity.getErrorMessage(), promptMaxLength));
         dto.setStartTime(entity.getStartTime());
         dto.setEndTime(entity.getEndTime());
         dto.setCostMs(entity.getCostMs());
@@ -171,10 +176,10 @@ public class TraceQueryService {
         dto.setId(entity.getId());
         dto.setTraceId(entity.getTraceId());
         dto.setStepName(entity.getStepName());
-        dto.setStepContent(truncate(entity.getStepContent(), PROMPT_MAX_LENGTH));
-        dto.setStepOutput(truncate(entity.getStepOutput(), RESULT_MAX_LENGTH));
+        dto.setStepContent(truncate(entity.getStepContent(), promptMaxLength));
+        dto.setStepOutput(truncate(entity.getStepOutput(), resultMaxLength));
         dto.setStatus(entity.getStatus());
-        dto.setErrorMessage(truncate(entity.getErrorMessage(), PROMPT_MAX_LENGTH));
+        dto.setErrorMessage(truncate(entity.getErrorMessage(), promptMaxLength));
         dto.setStartTime(entity.getStartTime());
         dto.setEndTime(entity.getEndTime());
         dto.setCostMs(entity.getCostMs());
@@ -186,8 +191,8 @@ public class TraceQueryService {
         dto.setId(entity.getId());
         dto.setTraceId(entity.getTraceId());
         dto.setToolName(entity.getToolName());
-        dto.setToolParams(truncate(maskSensitiveContent(entity.getToolParams()), PROMPT_MAX_LENGTH));
-        dto.setToolResult(truncate(entity.getToolResult(), RESULT_MAX_LENGTH));
+        dto.setToolParams(truncate(maskSensitiveContent(entity.getToolParams()), promptMaxLength));
+        dto.setToolResult(truncate(entity.getToolResult(), resultMaxLength));
         dto.setStatus(entity.getStatus());
         dto.setErrorMessage(entity.getErrorMessage());
         dto.setErrorCategory(entity.getErrorCategory());
@@ -204,19 +209,13 @@ public class TraceQueryService {
         dto.setTraceId(entity.getTraceId());
         dto.setTriggerStep(entity.getTriggerStep());
         dto.setReason(entity.getReason());
-        dto.setSummary(truncate(entity.getSummary(), RESULT_MAX_LENGTH));
+        dto.setSummary(truncate(entity.getSummary(), resultMaxLength));
         dto.setCreatedAt(entity.getCreatedAt());
         return dto;
     }
 
     private String truncate(String text, int maxLength) {
-        if (text == null) {
-            return null;
-        }
-        if (text.length() <= maxLength) {
-            return text;
-        }
-        return text.substring(0, maxLength) + TRUNCATED_SUFFIX;
+        return StringUtils.truncate(text, maxLength, TRUNCATED_SUFFIX);
     }
 
     private String maskSensitiveContent(String text) {

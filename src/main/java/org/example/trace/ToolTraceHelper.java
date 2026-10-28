@@ -12,6 +12,7 @@ import org.example.trace.service.AgentTraceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -24,8 +25,12 @@ import java.util.function.Supplier;
 public class ToolTraceHelper {
 
     private static final Logger logger = LoggerFactory.getLogger(ToolTraceHelper.class);
-    private static final int MAX_RESULT_LENGTH = 2000;
-    private static final int MAX_ERROR_LENGTH = 500;
+    @Value("${agent.trace.max-result-length:2000}")
+    private int maxResultLength;
+
+    @Value("${agent.trace.max-error-length:500}")
+    private int maxErrorLength;
+
     private static final String TRUNCATED_SUFFIX = "...[truncated]";
 
     @Autowired(required = false)
@@ -148,7 +153,7 @@ public class ToolTraceHelper {
                     traceContext.sessionId(),
                     toolName,
                     params,
-                    truncate(result, MAX_RESULT_LENGTH),
+                    truncate(result, maxResultLength),
                     status,
                     errorMessage,
                     startTime,

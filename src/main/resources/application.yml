@@ -19,6 +19,14 @@ milvus:
   password: ""
   database: default
   timeout: 10000
+  # --- 搜索参数 ---
+  search:
+    # Milvus 向量检索时 IVFFLAT 索引的探测桶数，越大精度越高但性能越低
+    nprobe: 10
+  # --- 索引参数 ---
+  index:
+    # IVFFLAT 索引的聚类中心数，建议取值: 数据量开方到4倍之间 (128~2048)
+    nlist: 128
 
 spring:
   datasource:
@@ -85,6 +93,44 @@ prometheus:
 
 cls:
   mock-enabled: false
+
+# ============================================================
+# OpsPilot / SuperBizAgent 运行时配置
+# ============================================================
+agent:
+  # --- Replan（重规划/故障切换）策略 ---
+  replan:
+    # 同一工具连续失败达到此阈值后触发重规划，避免无限重试
+    failure-threshold: 2
+  # --- 工具执行可靠性 ---
+  tool:
+    retry:
+      # 单次工具调用最大重试次数 (不含首次执行)
+      max-attempts: 1
+  # --- 聊天会话 ---
+  chat:
+    # 对话历史最多保留的轮次数（每轮 = 用户提问 + AI 回答）
+    max-window-size: 6
+    # SSE 流式响应超时时间（毫秒），前端连接超过此时间无数据则断开
+    sse:
+      timeout: 300000
+    # 报告类内容分块输出时每块最大字符数
+    report-chunk-size: 500
+  # --- AIOps 告警分析 ---
+  aiops:
+    sse:
+      # AIOps SSE 流式响应超时（毫秒），分析耗时较长，需更大超时
+      timeout: 600000
+  # --- Trace 可观测性 ---
+  trace:
+    # 工具调用结果记录到数据库时的最大字符数
+    max-result-length: 2000
+    # 工具调用错误信息记录到数据库时的最大字符数
+    max-error-length: 500
+    # Trace 查询时提示词/参数展示的最大字符数
+    max-prompt-length: 500
+    # Trace 查询时结果展示的最大字符数
+    max-result-display-length: 1000
 
 management:
   endpoints:

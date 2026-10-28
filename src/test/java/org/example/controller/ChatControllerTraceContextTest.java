@@ -3,10 +3,12 @@ package org.example.controller;
 import com.alibaba.cloud.ai.dashscope.api.DashScopeApi;
 import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatModel;
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
+import org.example.dto.ApiResponse;
 import org.example.service.ChatService;
 import org.example.trace.TraceContext;
 import org.example.trace.TraceContextHolder;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -20,6 +22,15 @@ import static org.mockito.Mockito.when;
 
 class ChatControllerTraceContextTest {
 
+    private ChatController createController() {
+        ChatController controller = new ChatController();
+        ReflectionTestUtils.setField(controller, "maxWindowSize", 6);
+        ReflectionTestUtils.setField(controller, "chatSseTimeout", 300000L);
+        ReflectionTestUtils.setField(controller, "aiopsSseTimeout", 600000L);
+        ReflectionTestUtils.setField(controller, "reportChunkSize", 500);
+        return controller;
+    }
+
     @AfterEach
     void clearTraceContext() {
         TraceContextHolder.clear();
@@ -27,7 +38,7 @@ class ChatControllerTraceContextTest {
 
     @Test
     void getOrCreateTraceContextBackfillsMissingSessionId() {
-        ChatController controller = new ChatController();
+        ChatController controller = createController();
         TraceContextHolder.set(new TraceContext("trace-1", null, "request-1", "user-1"));
 
         TraceContext context = (TraceContext) ReflectionTestUtils.invokeMethod(
@@ -44,7 +55,7 @@ class ChatControllerTraceContextTest {
 
     @Test
     void chatSetsTraceContextUsingResolvedSessionId() throws Exception {
-        ChatController controller = new ChatController();
+        ChatController controller = createController();
         ChatService chatService = mock(ChatService.class);
         DashScopeApi dashScopeApi = mock(DashScopeApi.class);
         DashScopeChatModel chatModel = mock(DashScopeChatModel.class);
@@ -65,7 +76,7 @@ class ChatControllerTraceContextTest {
         request.setId(null);
         request.setQuestion("hello");
 
-        ResponseEntity<ChatController.ApiResponse<ChatController.ChatResponse>> response = controller.chat(request);
+        ResponseEntity<ApiResponse<ChatController.ChatResponse>> response = controller.chat(request);
 
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
         assertThat(TraceContextHolder.get()).isNotNull();
@@ -84,7 +95,7 @@ class ChatControllerTraceContextTest {
 
     @Test
     void chatFallsBackToLocalOnlyAgentWhenExternalMcpTransportFails() throws Exception {
-        ChatController controller = new ChatController();
+        ChatController controller = createController();
         ChatService chatService = mock(ChatService.class);
         DashScopeApi dashScopeApi = mock(DashScopeApi.class);
         DashScopeChatModel chatModel = mock(DashScopeChatModel.class);
@@ -108,7 +119,7 @@ class ChatControllerTraceContextTest {
         request.setId("fallback-session");
         request.setQuestion("hello");
 
-        ResponseEntity<ChatController.ApiResponse<ChatController.ChatResponse>> response = controller.chat(request);
+        ResponseEntity<ApiResponse<ChatController.ChatResponse>> response = controller.chat(request);
 
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
         ChatController.ChatResponse chatResponse = response.getBody().getData();
@@ -119,7 +130,7 @@ class ChatControllerTraceContextTest {
 
     @Test
     void chatStoresHistoryUnderProvidedSessionId() throws Exception {
-        ChatController controller = new ChatController();
+        ChatController controller = createController();
         ChatService chatService = mock(ChatService.class);
         DashScopeApi dashScopeApi = mock(DashScopeApi.class);
         DashScopeChatModel chatModel = mock(DashScopeChatModel.class);
@@ -138,8 +149,8 @@ class ChatControllerTraceContextTest {
         request.setId("session-fixed");
         request.setQuestion("hello");
 
-        ResponseEntity<ChatController.ApiResponse<ChatController.ChatResponse>> chatResponse = controller.chat(request);
-        ResponseEntity<ChatController.ApiResponse<ChatController.SessionInfoResponse>> sessionResponse =
+        ResponseEntity<ApiResponse<ChatController.ChatResponse>> chatResponse = controller.chat(request);
+        ResponseEntity<ApiResponse<ChatController.SessionInfoResponse>> sessionResponse =
                 controller.getSessionInfo("session-fixed");
 
         assertThat(chatResponse.getStatusCode().is2xxSuccessful()).isTrue();

@@ -9,6 +9,7 @@ import io.milvus.param.dml.SearchParam;
 import io.milvus.response.SearchResultsWrapper;
 import lombok.Getter;
 import lombok.Setter;
+import org.example.client.MilvusCollectionManager;
 import org.example.constant.MilvusConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +34,12 @@ public class VectorSearchService {
 
     @Autowired
     private VectorEmbeddingService embeddingService;
+
+    @Autowired(required = false)
+    private MilvusCollectionManager collectionManager;
+
+    @Value("${milvus.search.nprobe:10}")
+    private int milvusNprobe;
 
     @Value("${milvus.enabled:true}")
     private boolean milvusEnabled;
@@ -60,7 +67,7 @@ public class VectorSearchService {
                     .withTopK(topK)
                     .withMetricType(io.milvus.param.MetricType.L2)
                     .withOutFields(List.of("id", "content", "metadata"))
-                    .withParams("{\"nprobe\":10}")
+                    .withParams("{\"nprobe\":" + milvusNprobe + "}")
                     .build();
 
             R<SearchResults> searchResponse = milvusClient.search(searchParam);
@@ -95,13 +102,15 @@ public class VectorSearchService {
     }
 
     private void ensureCollectionLoaded() {
+        if (collectionManager != null) {
+            collectionManager.ensureCollectionLoaded(milvusClient);
+            return;
+        }
         R<RpcStatus> loadResponse = milvusClient.loadCollection(
                 LoadCollectionParam.newBuilder()
                         .withCollectionName(MilvusConstants.MILVUS_COLLECTION_NAME)
                         .build()
         );
-
-        // 65535 means the collection is already loaded.
         if (loadResponse.getStatus() != 0 && loadResponse.getStatus() != 65535) {
             throw new RuntimeException("加载 collection 失败: " + loadResponse.getMessage());
         }

@@ -14,6 +14,7 @@ import org.example.constant.MilvusConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.TimeUnit;
@@ -29,6 +30,9 @@ public class MilvusClientFactory {
 
     @Autowired
     private MilvusProperties milvusProperties;
+
+    @Value("${milvus.index.nlist:128}")
+    private int milvusNlist;
 
     /**
      * 创建并初始化 Milvus 客户端
@@ -165,7 +169,7 @@ public class MilvusClientFactory {
                 .withFieldName("vector")
                 .withIndexType(IndexType.IVF_FLAT)
                 .withMetricType(MetricType.L2)  // L2 距离（欧氏距离）
-                .withExtraParam("{\"nlist\":128}")
+                .withExtraParam("{\"nlist\":" + milvusNlist + "}")
                 .withSyncMode(Boolean.FALSE)
                 .build();
 

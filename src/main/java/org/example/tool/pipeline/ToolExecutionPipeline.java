@@ -1,5 +1,6 @@
 package org.example.tool.pipeline;
 
+import org.example.common.StringUtils;
 import org.example.reliability.error.AiErrorClassification;
 import org.example.reliability.error.AiErrorClassifier;
 import org.example.reliability.error.RetryExecutor;
@@ -76,7 +77,7 @@ public class ToolExecutionPipeline {
             RuntimeException ex,
             int retryCount,
             AiErrorClassification classification) {
-        String errorMessage = truncate(ex.getMessage(), MAX_ERROR_LENGTH);
+        String errorMessage = StringUtils.truncate(ex.getMessage(), MAX_ERROR_LENGTH);
         String category = classification == null ? null : classification.category().name();
         String result = String.format(
                 "{\"status\":\"error\",\"tool\":\"%s\",\"message\":\"%s\"}",
@@ -91,10 +92,4 @@ public class ToolExecutionPipeline {
         return lower.contains("\"no_results\"") || lower.contains("\"success\":false");
     }
 
-    private String truncate(String text, int maxLength) {
-        if (text == null || text.length() <= maxLength) {
-            return text;
-        }
-        return text.substring(0, maxLength);
-    }
 }
