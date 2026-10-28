@@ -7,7 +7,7 @@
 - **对话式运维助手**：基于通义千问（qwen3-max）的多轮对话，支持 SSE 流式输出与可配置的会话历史窗口。
 - **RAG 知识库**：上传 txt / md 文档，自动分块（默认 800 字符、100 重叠），经 `text-embedding-v4` 向量化后写入 Milvus，检索结果增强生成。
 - **AIOps 告警分析**：Agent 可自主调用日志查询（腾讯 CLS）、指标查询（Prometheus）、内部文档检索、时间工具，对告警进行流式根因分析。
-- **MCP 工具接入**：通过 Spring AI MCP Client（SSE / 异步）接入外部 MCP Server，工具能力可扩展。
+- **MCP 工具接入**：通过 Spring AI MCP Client（SSE / 异步，默认接入腾讯 CLS 日志服务）接入外部 MCP Server，工具能力可扩展。
 - **可靠性保障**：工具调用自动重试、AI 错误分类、连续失败触发 Replan 重规划，避免单工具故障导致整体失败。
 - **全链路追踪**：Trace 上下文贯穿请求全链路，工具调用、执行步骤、重规划决策持久化入库，提供查询 API 与可视化页面。
 - **可观测性**：Actuator + Micrometer + Prometheus 指标暴露，自带轻量 Web 界面。
