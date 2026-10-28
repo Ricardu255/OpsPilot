@@ -81,6 +81,8 @@ export DASHSCOPE_API_KEY=your-dashscope-api-key
 mvn spring-boot:run
 ```
 
+默认使用 H2 文件库，无需额外安装数据库，切换 MySQL 的方式见下文配置说明。
+
 服务端口为 **9900**：
 
 - 聊天界面：http://localhost:9900
