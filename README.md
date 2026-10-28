@@ -126,7 +126,3 @@ curl -X POST http://localhost:9900/api/upload -F "file=@your-doc.md"
 | `milvus.search.nprobe` / `index.nlist` | 10 / 128 | IVFFLAT 检索与索引参数 |
 
 数据库默认使用 H2 文件库（`./data/`），切换 MySQL 只需设置 `SPRING_DATASOURCE_URL`、`SPRING_DATASOURCE_USERNAME`、`SPRING_DATASOURCE_PASSWORD` 并将驱动改为 `com.mysql.cj.jdbc.Driver`，表结构由 Flyway 自动迁移。
-
-## License
-
-[MIT](LICENSE)
